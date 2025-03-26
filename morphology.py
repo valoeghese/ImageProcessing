@@ -63,12 +63,47 @@ def kernel_operate(image: Image, kernel: Kernel, default_value: int, update_func
     
     return output
             
-
+# Elementary Operations
 def erode(image: Image, kernel: Kernel):
     return kernel_operate(image, kernel, 255, min)
 
 def dilate(image: Image, kernel: Kernel):
     return kernel_operate(image, kernel, 0, max)
+
+# Derived Operations
+def open(image: Image, kernel: Kernel):
+    return dilate(erode(img, kernel), kernel)
+
+def close(image: Image, kernel: Kernel):
+    return erode(dilate(img, kernel), kernel)
+
+def white_top_hat(image: Image, kernel: Kernel):
+    opened = open(image, kernel).load()
+
+    image = image.copy()
+    pixels = image.load()
+
+    width, height = image.size
+
+    for x in range(width):
+        for y in range(height):
+            pixels[x, y] = pixels[x, y] - opened[x, y]
+    
+    return image
+
+def black_top_hat(image: Image, kernel: Kernel):
+    closed = close(image, kernel).load()
+    
+    image = image.copy()
+    pixels = image.load()
+
+    width, height = image.size
+
+    for x in range(width):
+        for y in range(height):
+            pixels[x, y] = closed[x, y] - pixels[x, y]
+    
+    return image
 
 ## Test
 
@@ -79,8 +114,11 @@ try:
     erode(img, kernel).save('output/eroded.png')
     dilate(img, kernel).save('output/dilated.png')
 
-    erode(dilate(img, kernel), kernel).save('output/closed.png')
-    dilate(erode(img, kernel), kernel).save('output/opened.png')
+    close(img, kernel).save('output/closed.png')
+    open(img, kernel).save('output/opened.png')
+
+    white_top_hat(img, kernel).save('output/white_top_hat.png')
+    black_top_hat(img, kernel).save('output/black_top_hat.png')
 
 except IOError as err:
     print(err)
